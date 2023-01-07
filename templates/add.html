@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+    <body>
+        <!-- Navigation-->
+        {% include 'navbar.html' %}
+        <!-- Page Header-->
+        {% block header %}
+        <header>
+            <div class="container ">
+                            <h1>Add post</h1>
+                            <span class="subheading">You can create a blog post here.</span>
+            </div>
+        </header>
+        {% endblock header %}
+        <!-- Main Content-->
+        {% block content %}
+        <div class="contact-form-page">
+  <main class="form-container">
+    <p style="margin:1rem; font-weight:300;">Add a blog</p>
+    <hr>
+    <form id="contact-form" action="{{ url_for('add')}}" method="POST" >
+      <div class="form-item">
+        <label for="username">Title</label>
+        <input id="name" name="title" type="text" placeholder="Enter a title" />
+      </div>
+      <div class="form-item">
+        <label for="subtitle">Subtitle</label>
+        <br>
+        <input name="subtitle" type="text" placeholder="Enter Subtitle"  />
+      </div>
+      <div class="form-item">
+        <label for="author">password</label><br />
+        <br><input  type="text" name="author" placeholder="Enter your author name"/>
+      </div>
+      
+      <div class="form-item">
+        <textarea id="message" name="content" placeholder="Enter your message here..." ></textarea>
+      </div>
+      <!-- button -->
+      <div class="form-item">
+        <br>
+        <input  type="submit" value="Add" />
+      </div>
+    </form>
+  </main>
+  
+  <!-- sidebar -->
+  <div class="sidebar-right">
+    <ul class="ul-cntainer">
+      <div class="sidebar-title">Title</div>
+      <hr>
+      <div class="sidebar-item"><li>one</li></div>
+      <hr>
+      <div class="sidebar-item"><li>two</li></div>
+      <hr>
+      <div class="sidebar-item"><li>three</li></div>
+    </ul>
+  </div>
+  </div>
+        <!-- end of snippets -->
+        {% endblock content %}
+        <!-- Footer-->
+        {% block footer %}
+        {% include 'footer.html' %}
+        {% endblock footer %}
+        </body>
