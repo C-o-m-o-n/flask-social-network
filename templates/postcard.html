@@ -1,54 +1,105 @@
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>postcard</title>
-          <!-- Font Awesome icons (free version)-->
-        <script src="https://use.fontawesome.com/releases/v6.1.0/js/all.js" crossorigin="anonymous"></script>
-      <!-- Core theme CSS (includes Bootstrap)-->
-          <link href="static/assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
-    <link
-        href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i"
-        rel="stylesheet">
+{% extends 'base.html'%}
+{% block content %}
+<body>
 
-    <!-- Custom styles for this template-->
-    <link href="static/css/sb-admin-2.min.css" rel="stylesheet">
-    <body>
-      
-      <form class="user"  action="{{ url_for('postcard')}}" method="POST" enctype="multipart/form-data">
-                                        <div class="form-group">
-                                            <input name="file" type="file">
-                                        </div>
-                                        <input type="submit" class="btn btn-primary btn-block" value="Upload">
-                                        <hr>
-                                    </form>
-                                    <hr>
-                                    {{ pic_name }}
-      
-      
-      
-        
-    <!-- Bootstrap core JavaScript-->
-    <script src="static/assets/vendor/jquery/jquery.min.js"></script>
-    <script src="static/assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<div style="
+  position: fixed;
+  bottom: 50px;
+  right: 10px;
+" id="mybutton">
+<button style="
+  background-color : #31B0D5;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 4px;
+  border-color: #46b8da;
+" class="feedback">Feedback</button>
+<!-- dropup Navbar -->
+<ul class="navbar-nav ml-auto">
+<!-- Nav Item - Messages -->
+<li class="nav-item dropup no-arrow mx-1">
+  <a class="nav-link dropup-toggle" href="#" id="messagesDropdown" role="button"
+data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+    <i class="fas fa-envelope fa-fw"></i>
+<!-- Counter - Messages -->
+<span class="badge badge-danger badge-counter">7</span>
+</a>
+<!-- Dropdown - Messages -->
+<div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in" aria-labelledby="messagesDropdown">
+  <h6 class="dropdown-header">Message Center</h6>
+  <a class="dropdown-item d-flex align-items-center" href="#">
+<div class="dropdown-list-image mr-3">
+  <img class="rounded-circle" src="img/undraw_profile_1.svg" alt="...">
+  <div class="status-indicator bg-success"></div>
+  </div>
+<div class="font-weight-bold">
+  <div class="text-truncate">Hi there! I am wondering if you can help me with a problem I've been having.</div>
+  <div class="small text-gray-500">Emily Fowler · 58m</div>
+</div>
+</a>
+<a class="dropdown-item d-flex align-items-center" href="#">
+  <div class="dropdown-list-image mr-3">
+    <img class="rounded-circle" src="img/undraw_profile_2.svg" alt="...">
+    <div class="status-indicator"></div>
+</div>
+<div>
+  <div class="text-truncate">I have the photos that you ordered last month, how would you like them sent to you?</div>
+  <div class="small text-gray-500">Jae Chun · 1d</div>
+</div>
+</a>
+<a class="dropdown-item d-flex align-items-center" href="#">
+  <div class="dropdown-list-image mr-3">
+    <img class="rounded-circle" src="img/undraw_profile_3.svg" alt="...">
+    <div class="status-indicator bg-warning"></div>
+</div>
+<div>
+<div class="text-truncate">Last month's report looks great, I am very happy with the progress so far, keep up the good work!</div>
+<div class="small text-gray-500">Morgan Alvarez · 2d</div>
+</div>
+</a>
+<a class="dropdown-item d-flex align-items-center" href="#">
+  <div class="dropdown-list-image mr-3">
+    <img class="rounded-circle" src="https://source.unsplash.com/Mv9hjnEUHR4/60x60" alt="...">
+<div class="status-indicator bg-success"></div>
+</div>
+<div>
+  <div class="text-truncate">Am I a good boy? The reason I ask is because someone told me that people say this to all dogs, even if they aren't good...</div>
+  <div class="small text-gray-500">Chicken the Dog · 2w</div>
+</div>
+</a>
+<a class="dropdown-item text-center small text-gray-500" href="#">Read More Messages</a>
+</div>
+</li>
+<div class="topbar-divider d-none d-sm-block"></div>
+                    </ul>
 
-    <!-- Core plugin JavaScript-->
-    <script src="static/assets/vendor/jquery-easing/jquery.easing.min.js"></script>
-    
+              
+                <br>
+                <!-- End of Topbar -->
+</div>
 
-    <!-- Custom scripts for all pages-->
-    <script src="static/js/sb-admin-2.min.js"></script>
+  <ul class="dropdown-menu">
+    <!-- Dropdown menu links -->
+  </ul>
+</div>
 
-    <!-- Page level plugins -->
-    <script src="static/assets/vendor/chart.js/Chart.min.js"></script>
+    <a class="scroll-to-top rounded" href="#page-top">
+        <i class="fas fa-angle-up"></i>
+    </a>
+  <!-- dropup -->
 
-    <!-- Page level custom scripts -->
-    <script src="static/js/demo/chart-area-demo.js"></script>
-    <script src="static/js/demo/chart-pie-demo.js"></script>
 
+  </body>
+  
+  {% endblock content%}
+  
+        <!-- Footer-->
+    {% block footer %}
+
+    {% endblock footer%}
 
 </body>
+
+</html>
 </html>

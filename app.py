@@ -4,34 +4,34 @@ from flask_login import UserMixin, LoginManager, login_user, logout_user, login_
 from datetime import datetime, timedelta
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
-from werkzeug.utils import secure_filename
-import uuid as uuid
+import secrets
 import os
+from sqlalchemy import MetaData
 from flask_migrate import Migrate
-from flask_uploads import IMAGES
-from flask_uploads import UploadSet
 
-
-
-
-# Create your first `UploadSet`.
-photos = UploadSet("photos", IMAGES)
-configure_uploads(app, photos)
-
-UPLOAD_FOLDER = '/static/assets/img' 
-ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif']) 
 #initialise Flask
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI']='sqlite:///database.db'
 app.config['SECRET_KEY']='sqlite:///database'
-#for image files 
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
 #for user session
 app.permanent_session_lifetime = timedelta(minutes=10)
 
 #initialise SQLAlchemy with Flask
-db = SQLAlchemy(app)
-migrate = Migrate(app, db)
+
+
+convention = {
+    "ix": 'ix_%(column_0_label)s',
+    "uq": "uq_%(table_name)s_%(column_0_name)s",
+    "ck": "ck_%(table_name)s_%(constraint_name)s",
+    "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+    "pk": "pk_%(table_name)s"
+}
+metadata = MetaData(naming_convention=convention)
+db = SQLAlchemy(app, metadata=metadata)
+migrate = Migrate(app,db,render_as_batch=True)
+
+
 
 login_manager = LoginManager()
 login_manager.login_view = 'login'
@@ -39,13 +39,13 @@ login_manager.login_message_category = 'info'
 login_manager.init_app(app)
 
 #define the BlogPost table
-class BlogPost(db.Model):
+class BlogPost(db.Model,UserMixin):
   id = db.Column(db.Integer, primary_key=True)
-  title = db.Column(db.String(50))
-  subtitle = db.Column(db.String(50))
-  author = db.Column(db.String(50))
   date_posted = db.Column(db.DateTime)
-  content = db.Column(db.Text)
+  content = db.Column(db.String())
+  post_img = db.Column(db.String())
+  #foreign key to link to users
+  poster_id = db.Column(db.Integer, db.ForeignKey('users.id'))
 
 #define the Users table
 class Users(db.Model,UserMixin):
@@ -53,9 +53,11 @@ class Users(db.Model,UserMixin):
   username = db.Column(db.String(50))
   email = db.Column(db.String(50))
   password = db.Column(db.String(50))
-  profile_pic = db.Column(db.String(), nullable=True)
-  date_posted = db.Column(db.DateTime)
-  #content = db.Column(db.Text)
+  profile_pic = db.Column(db.String(50), default='user.png')
+  pic_file_path = db.Column(db.String(100))
+  # date_posted = db.Column(db.DateTime)
+  #user can have many ppsts
+  blog_post = db.relationship('BlogPost', backref='poster')
 
 #main app code starts here****************((*))
   
@@ -64,28 +66,41 @@ with app.app_context(): #put all the code inside the app context
   @app.route('/')
   def index():
     posts = BlogPost.query.all()
-    print(type(current_user.profile_pic))
-    return render_template("index.html", posts=posts, current_user=current_user)
+    
+    return render_template("index.html", posts=posts, current_user=current_user )
+    
+  
   #the post page
   @app.route('/post/<int:post_id>')
   def post(post_id):
     post = BlogPost.query.filter_by(id=post_id).one()
     date_posted = post.date_posted.strftime('%B, %d, %Y')
     return render_template("post.html", post=post, date_posted=date_posted)
-  #the page for adding posts from the frontend  
+  #the page for adding posts  the frontend  
   @app.route('/add')
   @login_required
   def add():
     return render_template("add.html")
+    
   #handles the posts
+  def save_post_img(form_pic): 
+    random_pic_hex = secrets.token_hex(8)
+    _, f_ext = os.path.splitext(form_pic.filename)
+    post_pic_file_name = random_pic_hex + f_ext
+    picture_path = os.path.join(app.root_path, 'static/assets/post_img', post_pic_file_name)
+    form_pic.save(picture_path)
+    
+    return post_pic_file_name
+    
   @app.route('/addpost', methods=['POST'])
   def addpost():
-    title = request.form['title']
-    subtitle = request.form['subtitle']
-    author = request.form['author']
     content = request.form['content']
-    
-    post = BlogPost(title=title, subtitle=subtitle, author=author, content=content, date_posted=datetime.now())
+    poster = current_user.id
+    if request.files['post_img']:
+      post_img = save_post_img(request.files['post_img'])
+      post = BlogPost(post_img=post_img, poster_id=poster, content=content, date_posted=datetime.now())
+    else:
+      post = BlogPost(poster_id=poster, content=content, date_posted=datetime.now())
     db.create_all()
     db.session.add(post)
     db.session.commit()
@@ -122,27 +137,50 @@ with app.app_context(): #put all the code inside the app context
         flash("email does not exist", "error")
     return render_template('login.html')
     
-    #user profile
+  #save the image to the file system
+  def save_pic(form_pic): 
+    random_pic_hex = secrets.token_hex(8)
+    _, f_ext = os.path.splitext(form_pic.filename)
+    pic_file_name = random_pic_hex + f_ext
+    picture_path = os.path.join(app.root_path, 'static/assets/profile_img', pic_file_name)
+    form_pic.save(picture_path)
+    
+    return pic_file_name
+    
+  #user profile
   @app.route('/user', methods=['POST', 'GET'])
   @login_required
   def user():
-    if request.method == "POST":#updating the profile details
-      current_user.username = request.form['username']
-      current_user.email = request.form['email']
+    profile_pic = url_for('static', filename='assets/profile_img/'+ current_user.profile_pic)
+    #updating the profile details
+    if request.method == "POST":
+      if request.files['profile_pic']:
+        picture_file = save_pic(request.files['profile_pic'])
+        current_user.profile_pic = picture_file
+        
       
-      #set the pic name
-      pic_filename = secure_filename(current_user.profile_pic)
-      #set uuid for the pic
-      pic_name = str(uuid.uuid1()) + '_' + pic_filename
-      current_user.profile_pic = pic_name #add the pic name to the database
-      db.session.commit()
-      flash("your profile has been updated successfully", "success")
-      return redirect(url_for('user'))
+      #get username and email from the form
+      username = request.form['username']
+      email = request.form['email']
+      #check if username and email exists 
+      email_exists = Users.query.filter_by(email=email).first()
+      username_exists = Users.query.filter_by(username=username).first()  
+      if not username and not email:
+        flash('username and email cannot be empty!', 'error')
+      elif email_exists and username_exists:
+        flash('username and email already exist', 'error')
+      else:
+        current_user.username = username
+        current_user.email = email
+        db.session.commit()
+        flash("your profile has been updated successfully", "success")
+        return redirect(url_for('user'))
+        
     if 'user' in session:
       user_session = session["user"]
       user = Users.query.filter_by(username=current_user.username).first()
-      print(user.username)
-      return render_template("user.html",title="profile", user_session=user_session, current_user=current_user)
+      print(picture_path)
+      return render_template("user.html",title="profile", user_session=user_session, current_user=current_user, profile_pic=profile_pic)
     else:
       return redirect(url_for('login'))
       
@@ -156,24 +194,23 @@ with app.app_context(): #put all the code inside the app context
       email = request.form['email']
       password1 = request.form['password1']
       password2 = request.form['password2']
-      profile_pic = request.files['profile_pic']
       
       email_exists = Users.query.filter_by(email=email).first()
       username_exists = Users.query.filter_by(username=username).first()
       if email_exists:
-        flash('email already exists', 'error')
+        flash('email i already in use', 'error')
       elif username_exists:
-        flash('username already exists', 'error')
+        flash('username i already in use', 'error')
       elif password1 != password2:
-        flash("the passwords you entered do not match", 'error')
-      elif len(password1) <7:
-        flash("password is too short", 'error')
-      elif len(username) <2:
-        flash("username is too short", 'error')
-      elif len(email) <10:
-        flash("the email entered is invalid",'error')
+          flash('passwords do not match', 'error')
+      elif len(username) <= 2:
+        flash('username is too short', 'error')
+      elif len(password1) <= 6:
+        flash('password is too short', 'error')
+      elif len(email) <= 4:
+        flash('email is invalid', 'error')
       else:
-        new_user = Users(username=username, email=email, password=generate_password_hash(password1, method='sha256'), profile_pic=profile_pic)
+        new_user = Users(username=username, email=email, password=generate_password_hash(password1, method='sha256'))
         db.create_all()
         db.session.add(new_user)
         db.session.commit()

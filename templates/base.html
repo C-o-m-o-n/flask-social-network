@@ -34,14 +34,14 @@
     <ul>
     {% for category, message in messages %}
     {% if category == 'error'%}
-        <div class="alert-danger">
-      <li style="list-style:none;">{{ message }}</li> <button type="button" >X</button>
+        <div class="alert-danger alert-dismissible fade show" role="alert">
+      <li style="list-style:none;">{{ message }}</li> 
         {% elif category == 'info' %}
-        <div class="alert-info ">
-      <li style="list-style:none;">{{ message }}</li> <button type="button" >X</button>
+        <div class="alert-info alert-dismissible fade show" role="alert">
+      <li style="list-style:none;">{{ message }}</li> 
     {% else %}
-      <div class="alert-success" >
-      <li style="list-style:none;">{{ message }}</li> <button type="button" >X</button>
+      <div class="alert-success alert-dismissible fade show" role="alert">
+      <li style="list-style:none;">{{ message }}</li>
         </div>
     {% endif %}
     {% endfor %}
@@ -53,13 +53,15 @@
        
     <div>
       {% block content %}
+      
+      {% block footer %}
+      {% endblock footer %}
+      
       {% endblock content %}
     </div>
 
         
       <!--   Footer -->
-      {% block footer %}
-      {% endblock footer %}
         
     <!-- Bootstrap core JavaScript-->
     <script src="static/assets/vendor/jquery/jquery.min.js"></script>
