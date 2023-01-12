@@ -1,5 +1,5 @@
 #import all the necessary packages
-from flask import Flask, render_template, url_for, request, redirect, flash, session
+from flask import Flask, render_template, url_for, request, redirect, flash, session, jsonify
 from flask_login import UserMixin, LoginManager, login_user, logout_user, login_required, current_user
 from datetime import datetime, timedelta
 from flask_sqlalchemy import SQLAlchemy
@@ -46,6 +46,7 @@ class BlogPost(db.Model,UserMixin):
   post_img = db.Column(db.String())
   #foreign key to link to users
   poster_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+  likes = db.relationship('Likes', backref='post')
 
 #define the Users table
 class Users(db.Model,UserMixin):
@@ -58,25 +59,53 @@ class Users(db.Model,UserMixin):
   # date_posted = db.Column(db.DateTime)
   #user can have many ppsts
   blog_post = db.relationship('BlogPost', backref='poster')
+  likes = db.relationship('Likes', backref='liker')
+  
+#define the Likes table
+class Likes(db.Model,UserMixin):
+  id = db.Column(db.Integer, primary_key=True)
+  username = db.Column(db.Integer, db.ForeignKey('users.id'))#represents the user
+  date_posted = db.Column(db.DateTime)
+  #user can have many ppsts
+  post_id = db.Column(db.Integer, db.ForeignKey('blog_post.id'))
+
 
 #main app code starts here****************((*))
   
-with app.app_context(): #put all the code inside the app context
+with app.app_context(): 
+  #put all the code inside the app context
   #the homepage
   @app.route('/')
   def index():
     posts = BlogPost.query.all()
-    
     return render_template("index.html", posts=posts, current_user=current_user )
     
-  
+  #like
+  @app.route('/like/<int:post_id>', methods=['GET'])
+  @login_required
+  def like(post_id):
+    post = BlogPost.query.filter_by(id=post_id).one()
+    
+    like = Likes.query.filter_by(username=current_user.id, post_id=post_id).first()
+    if not post:
+      flash('the post does not exist', 'error')
+    elif like:
+      db.create_all()
+      db.session.delete(like)
+      db.session.commit()
+    else:
+      like= Likes(username=current_user.id, post_id=post_id)
+      db.create_all()
+      db.session.add(like)
+      db.session.commit()
+    return redirect(url_for('index'))
   #the post page
   @app.route('/post/<int:post_id>')
   def post(post_id):
     post = BlogPost.query.filter_by(id=post_id).one()
     date_posted = post.date_posted.strftime('%B, %d, %Y')
     return render_template("post.html", post=post, date_posted=date_posted)
-  #the page for adding posts  the frontend  
+  #the page for adding posts 8 the frontend  
   @app.route('/add')
   @login_required
   def add():
@@ -94,12 +123,15 @@ with app.app_context(): #put all the code inside the app context
     
   @app.route('/addpost', methods=['POST'])
   def addpost():
+    content_img = request.files['post_img']
     content = request.form['content']
     poster = current_user.id
-    if request.files['post_img']:
+    if content_img:
       post_img = save_post_img(request.files['post_img'])
       post = BlogPost(post_img=post_img, poster_id=poster, content=content, date_posted=datetime.now())
-    else:
+    elif content_img and content:
+      post = BlogPost(post_img=post_img, poster_id=poster, content=content, date_posted=datetime.now())
+    elif not content_img:
       post = BlogPost(poster_id=poster, content=content, date_posted=datetime.now())
     db.create_all()
     db.session.add(post)
@@ -179,7 +211,6 @@ with app.app_context(): #put all the code inside the app context
     if 'user' in session:
       user_session = session["user"]
       user = Users.query.filter_by(username=current_user.username).first()
-      print(picture_path)
       return render_template("user.html",title="profile", user_session=user_session, current_user=current_user, profile_pic=profile_pic)
     else:
       return redirect(url_for('login'))
