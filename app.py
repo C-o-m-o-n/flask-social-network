@@ -44,8 +44,9 @@ class BlogPost(db.Model,UserMixin):
   date_posted = db.Column(db.DateTime)
   content = db.Column(db.String())
   post_img = db.Column(db.String())
-  #foreign key to link to users
+  #foreign key to link to other tables
   poster_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+  comments = db.relationship('Comments', backref='blog_post')
   likes = db.relationship('Likes', backref='post')
 
 #define the Users table
@@ -60,7 +61,17 @@ class Users(db.Model,UserMixin):
   #user can have many ppsts
   blog_post = db.relationship('BlogPost', backref='poster')
   likes = db.relationship('Likes', backref='liker')
+  comments = db.relationship('Comments', backref='comenter')
   
+# define comments table
+class Comments(db.Model, UserMixin):
+  id = db.Column(db.Integer, primary_key=True)
+  username = db.Column(db.Integer, db.ForeignKey('users.id'))#represents the user
+  content = db.Column(db.String(100))
+  date_posted = db.Column(db.DateTime)
+  post_id = db.Column(db.Integer, db.ForeignKey('blog_post.id'))
+
+
 #define the Likes table
 class Likes(db.Model,UserMixin):
   id = db.Column(db.Integer, primary_key=True)
@@ -80,14 +91,15 @@ with app.app_context():
     posts = BlogPost.query.all()
     return render_template("index.html", posts=posts, current_user=current_user )
     
-  #like
-  @app.route('/like/<int:post_id>', methods=['GET'])
+  #like page
+  @app.route('/like/<int:post_id>', methods=['POST'])
   @login_required
   def like(post_id):
-    post = BlogPost.query.filter_by(id=post_id).one()
+    post = BlogPost.query.filter_by(id=post_id).first()
     
     like = Likes.query.filter_by(username=current_user.id, post_id=post_id).first()
     if not post:
+      return jsonify({'error': 'post does not exist.'}, 400)
       flash('the post does not exist', 'error')
     elif like:
       db.create_all()
@@ -98,13 +110,30 @@ with app.app_context():
       db.create_all()
       db.session.add(like)
       db.session.commit()
-    return redirect(url_for('index'))
+    return jsonify({'likes' : len(post.likes), 'liked' : current_user.id in map(lambda x: x.username, post.likes)})
+
   #the post page
-  @app.route('/post/<int:post_id>')
+  @app.route('/post/<int:post_id>', methods=['GET','POST'])
+  @login_required
   def post(post_id):
     post = BlogPost.query.filter_by(id=post_id).one()
+    #comment_id = Comments.query.filter_by(id=post_id).one()
     date_posted = post.date_posted.strftime('%B, %d, %Y')
-    return render_template("post.html", post=post, date_posted=date_posted)
+    #post_id = BlogPost.query.get(post_id)
+    if request.method == 'POST':
+      if request.form['content']:
+        comment = Comments(username=current_user.id, content=request.form['content'], post_id=post_id)
+        db.create_all()
+        db.session.add(comment)
+        db.session.commit()
+        flash("Your comment has been added to the post", "success")
+        return redirect(url_for("post", post_id=post_id))
+      else:
+        flash('there are no Comments yet', 'error')
+        
+    comments = Comments.query.filter_by(post_id=post_id)
+    likes = Likes.query.filter_by(post_id=post_id)
+    return render_template("post.html", post=post, date_posted=date_posted, post_id=post_id, comments=comments, likes=likes)
   #the page for adding posts 8 the frontend  
   @app.route('/add')
   @login_required
